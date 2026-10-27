@@ -1,16 +1,18 @@
 // One narrator for a video with ElevenLabs, in ONE request so the voice never changes. Copy into <project>/scripts/.
-// Keys load at runtime from the project's .env (or the file named by ELEVENLABS_ENV) and are never printed:
-//   ELEVENLABS_API_KEY, VOICE_ID  (optional ELEVEN_MODEL, default eleven_multilingual_v2)
+// Keys load at runtime from the project's .env (or the file named by ELEVENLABS_ENV) when it exists, else from the environment,
+// and are never printed: ELEVENLABS_API_KEY, VOICE_ID (optional ELEVEN_MODEL, default eleven_multilingual_v2).
+// ELEVENLABS_API_KEY=proxy sends no key: a proxy adds it (Claude Code cloud sessions with a network secret).
 // Usage: node scripts/tts.mjs <video>
 //   reads  scripts/<video>.json            { "prefix": "ab", "lines": [{ "text": "...", "say": "spoken form", "marks": { "tap": "a phrase" } }] }
 //   writes public/audio/<prefix>-line<i>.mp3 and src/videos/<video>/voice.json
 //          (clip lengths, plus each mark's time in seconds from its clip start, so beats land on the word)
-import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
-process.loadEnvFile(process.env.ELEVENLABS_ENV ?? new URL('../.env', import.meta.url).pathname);
+const envFile = process.env.ELEVENLABS_ENV ?? new URL('../.env', import.meta.url).pathname;
+if (existsSync(envFile)) process.loadEnvFile(envFile);
 const { ELEVENLABS_API_KEY: key, VOICE_ID: voice, ELEVEN_MODEL: model = 'eleven_multilingual_v2' } = process.env;
-if (!key || !voice) { console.error('ELEVENLABS_API_KEY or VOICE_ID missing'); process.exit(1); }
+if (!key || !voice) { console.error('ELEVENLABS_API_KEY or VOICE_ID missing (use ELEVENLABS_API_KEY=proxy when a proxy adds the key)'); process.exit(1); }
 
 const video = process.argv[2];
 const root = new URL('../', import.meta.url);
@@ -20,7 +22,7 @@ const full = texts.join('\n\n');
 
 const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=mp3_44100_128`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'xi-api-key': key },
+  headers: { 'Content-Type': 'application/json', ...(key !== 'proxy' && { 'xi-api-key': key }) },
   body: JSON.stringify({
     text: full,
     model_id: model,

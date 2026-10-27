@@ -92,10 +92,31 @@ Open a new Claude Code session after installing so the skill is loaded.
 | Where | How |
 |---|---|
 | Terminal, desktop app, VS Code and JetBrains | Install once with any method above. They all read the same `~/.claude` folder, so the skill is there in every one of them. |
-| Browser (Claude Code on the web) | Web sessions run in a cloud machine that only sees the repository you open. Install the skill into that repository instead: run `npx skills add VisroliyaHimanshu/jsxreel -a claude-code` (without `-g`) in the repo and commit the `.claude/skills/jsxreel` folder it creates. It then loads wherever the repo is opened. The cloud machine also needs Node, ffmpeg, Chrome and your ElevenLabs key (as an environment secret) to record and render. |
+| Browser (Claude Code on the web) | Install the skill into the repository you open, and give the cloud environment your key as a network secret. See [Use it in the browser](#use-it-in-the-browser). |
 | A whole team on one repo | Run `claude plugin marketplace add VisroliyaHimanshu/jsxreel --scope project` in the repo and commit the `.claude/settings.json` it writes. Teammates are offered the plugin when they open the repo. |
 
-Rendering needs a real machine: Node, ffmpeg, Chrome and an ElevenLabs key. A local install in the terminal or desktop app is the smoothest.
+Rendering needs a real machine with Node, ffmpeg and an ElevenLabs key (Remotion brings its own headless Chrome if no browser is installed). A local install in the terminal or desktop app is the smoothest.
+
+### Use it in the browser
+
+Claude Code on the web runs in a cloud machine that only sees the repository you open, not your computer. Set it up once (cloud sessions need a Pro, Max, Team or Enterprise plan):
+
+1. **Put the skill in the repo.** In the repository, run `npx skills add VisroliyaHimanshu/jsxreel -a claude-code` (without `-g`) and commit the `.claude/skills/jsxreel` folder it creates.
+2. **Open your cloud environment** at [claude.ai/code](https://claude.ai/code) and edit it.
+3. **Add your ElevenLabs key as a network secret.** Under **Network secrets**, select **Add secret**: allowed website `api.elevenlabs.io`, custom header name `xi-api-key` with the prefix cleared, and your key as the value. The key stays outside the cloud machine; it is added to each request to ElevenLabs on the way out, so Claude never sees it. (On a Team plan without an admin role, ask an Owner to add it.)
+4. **Add two environment variables:**
+   ```
+   ELEVENLABS_API_KEY=proxy
+   VOICE_ID=your_voice_id
+   ```
+   `proxy` tells `tts.mjs` to leave the key out so the network secret adds it. Never put the real key here: anyone who uses the environment can read these values.
+5. **Add a setup script** for the one missing tool (Node and Python are already installed):
+   ```bash
+   apt update && apt install -y ffmpeg
+   ```
+6. **Rendering** downloads Remotion's own headless Chrome the first time. If your environment's network access blocks that download, switch it to **Custom**, keep the default list, and add the host named in the error.
+
+The browser path is newer than the local one; if a step fails, please open an issue.
 
 ### Updates
 
@@ -109,7 +130,7 @@ Plugin installs: open `/plugin`, go to **Marketplaces**, select jsxreel and choo
 | Node.js 22 or newer | Remotion and the voice script | `brew install node` |
 | ffmpeg | Cuts and measures audio | `brew install ffmpeg` |
 | Python 3 | `tighten.py` | preinstalled, or `brew install python` |
-| Google Chrome | Renders the video frames | google.com/chrome |
+| A Chromium browser (optional) | Renders the video frames | Chrome, Edge, Brave or Chromium. With none installed, Remotion downloads its own headless Chrome (about 170 MB, once). Firefox and Safari can't render |
 | ElevenLabs account | The voices | elevenlabs.io (an API key and a voice id) |
 
 Remotion has its own licence: free for individuals, a paid licence for some companies. Check [remotion.pro/license](https://www.remotion.pro/license) for your case.
@@ -206,7 +227,7 @@ The skill's tools live in `skills/jsxreel/scripts/`. Claude runs them for you. T
 node scripts/tts.mjs <video>
 ```
 
-Keys come from the project's `.env`, or from the file named in `ELEVENLABS_ENV`. Optional `ELEVEN_MODEL` (default `eleven_multilingual_v2`). It spends credits, so run it once per approved script.
+Keys come from the project's `.env`, the file named in `ELEVENLABS_ENV`, or the environment. `ELEVENLABS_API_KEY=proxy` sends no key, for cloud sessions where a network secret adds it. Optional `ELEVEN_MODEL` (default `eleven_multilingual_v2`). It spends credits, so run it once per approved script.
 
 **`tighten.py`** shortens pauses inside each line, trims the tail and speeds the take up, without new credits. Marks are remapped, so the video retimes on its own. Keep the untouched take in `.voice-orig/` first:
 
@@ -229,18 +250,20 @@ Running it again always starts from `.voice-orig/`, so you can try different set
 node qa/stills.mjs <CompositionId> 120 360 540
 ```
 
-It uses Google Chrome at its macOS path; on another system, change `browserExecutable` at the top of the file.
+It picks a browser in this order: the path in `REMOTION_BROWSER`, then the first installed Chrome, Chromium, Edge or Brave, and with none of them, Remotion's own headless Chrome (downloaded once). It prints which one it used.
+
+To render the final video, run `npx remotion render <CompositionId> out/video.mp4`. Without a flag, Remotion uses its own headless Chrome; add `--browser-executable "<path>"` to use an installed Chrome, Edge, Brave or Chromium instead.
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
 | Claude doesn't use the skill | Open a new session after installing. Check `/plugin` (plugin install) or `~/.claude/skills/jsxreel` (npx or manual) |
-| `ELEVENLABS_API_KEY or VOICE_ID missing` | Add both to the video project's `.env`, or point `ELEVENLABS_ENV` at your env file |
+| `ELEVENLABS_API_KEY or VOICE_ID missing` | Add both to the video project's `.env`, or point `ELEVENLABS_ENV` at your env file. In the browser, set `ELEVENLABS_API_KEY=proxy` and `VOICE_ID` as environment variables |
 | `HTTP 401` (or another code) from ElevenLabs | The message printed after the code says which: a wrong key, or the plan is out of credits |
 | `line 3: mark "submit" phrase not found` | The phrase must match the spoken line exactly, including capitals. Check `say` if the line has one |
 | The voice changes between lines | Lines were recorded separately. Record the whole script in one take |
-| The render can't find a browser | Add `--browser-executable "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"` |
+| The render can't find a browser | Remove `--browser-executable` so Remotion downloads its own headless Chrome, or point it at an installed Chromium browser. Firefox and Safari don't work |
 | Port already in use | Add `--port=3917` (or any free port) to `remotion studio` and `remotion render` |
 | A tap lands before the screen appears | Give that scene a longer lead in, or move the tap later in the timeline |
 
