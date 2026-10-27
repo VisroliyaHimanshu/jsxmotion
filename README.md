@@ -8,7 +8,7 @@ Ask Claude for a video the way you'd ask for a feature: an app walkthrough, an a
 - [How it works](#how-it-works)
 - [Install](#install)
 - [Requirements](#requirements)
-- [Set up a video project](#set-up-a-video-project)
+- [Optional: set up a video project by hand](#optional-set-up-a-video-project-by-hand)
 - [Make a video](#make-a-video)
 - [Script format](#script-format)
 - [Tools](#tools)
@@ -64,7 +64,7 @@ On Claude Code older than 2.1.275, add the marketplace first:
 /plugin install jsxreel@jsxreel
 ```
 
-Claude uses it on its own when you ask for a video, or call it directly with `/jsxreel:jsxreel`. Updates come through the `/plugin` panel.
+Claude uses it on its own when you ask for a video, or call it directly with `/jsxreel:jsxreel`.
 
 ### npx
 
@@ -87,6 +87,20 @@ Update with `git -C ~/Code/jsxreel pull`. Call it with `/jsxreel`.
 
 Open a new Claude Code session after installing so the skill is loaded.
 
+### Where it works
+
+| Where | How |
+|---|---|
+| Terminal, desktop app, VS Code and JetBrains | Install once with any method above. They all read the same `~/.claude` folder, so the skill is there in every one of them. |
+| Browser (Claude Code on the web) | Web sessions run in a cloud machine that only sees the repository you open. Install the skill into that repository instead: run `npx skills add VisroliyaHimanshu/jsxreel -a claude-code` (without `-g`) in the repo and commit the `.claude/skills/jsxreel` folder it creates. It then loads wherever the repo is opened. The cloud machine also needs Node, ffmpeg, Chrome and your ElevenLabs key (as an environment secret) to record and render. |
+| A whole team on one repo | Run `claude plugin marketplace add VisroliyaHimanshu/jsxreel --scope project` in the repo and commit the `.claude/settings.json` it writes. Teammates are offered the plugin when they open the repo. |
+
+Rendering needs a real machine: Node, ffmpeg, Chrome and an ElevenLabs key. A local install in the terminal or desktop app is the smoothest.
+
+### Updates
+
+Plugin installs: open `/plugin`, go to **Marketplaces**, select jsxreel and choose **Enable auto-update**, or update by hand with `/plugin marketplace update jsxreel`. npx installs: `npx skills update`. Manual installs: `git pull`.
+
 ## Requirements
 
 | Tool | Why | Install (macOS) |
@@ -100,9 +114,9 @@ Open a new Claude Code session after installing so the skill is loaded.
 
 Remotion has its own licence: free for individuals, a paid licence for some companies. Check [remotion.pro/license](https://www.remotion.pro/license) for your case.
 
-## Set up a video project
+## Optional: set up a video project by hand
 
-Each product keeps its videos in its own Remotion project, usually inside the product's repo. Claude sets this up for you when you ask for the first video, so you can skip this section. To do it yourself (no clone needed):
+**You can skip this.** The skill is the process; each app keeps its own videos (scenes, scripts, audio) in a small Remotion project inside the app's repo. Claude creates that folder for you the first time you ask for a video. To create it yourself instead (no clone needed):
 
 ```bash
 cd your-app
@@ -184,7 +198,7 @@ In the video code, `m(line, "submit")` gives the second the voice says "Submit".
 
 ## Tools
 
-The skill's tools live in `skills/jsxreel/scripts/`. Claude runs them for you. To run them by hand, download them into the video project as shown in [Set up a video project](#set-up-a-video-project) and run them from its folder.
+The skill's tools live in `skills/jsxreel/scripts/`. Claude runs them for you. To run them by hand, download them into the video project as shown in [Optional: set up a video project by hand](#optional-set-up-a-video-project-by-hand) and run them from its folder.
 
 **`tts.mjs`** records one narrator in a single ElevenLabs request, normalises loudness, cuts it per line and writes `src/videos/<video>/voice.json` (clip lengths and mark times). Copy it into the video project's `scripts/`.
 
