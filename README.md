@@ -102,15 +102,16 @@ Remotion has its own licence: free for individuals, a paid licence for some comp
 
 ## Set up a video project
 
-Each product keeps its videos in its own Remotion project, usually inside the product's repo. Claude sets this up for you when you ask for the first video. To do it yourself, from a clone of this repo:
+Each product keeps its videos in its own Remotion project, usually inside the product's repo. Claude sets this up for you when you ask for the first video, so you can skip this section. To do it yourself (no clone needed):
 
 ```bash
 cd your-app
 npx create-video@latest videos        # a blank Remotion project
 cd videos
 mkdir -p scripts qa
-cp ~/Code/jsxreel/skills/jsxreel/scripts/tts.mjs scripts/
-cp ~/Code/jsxreel/skills/jsxreel/scripts/stills.mjs qa/
+curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/tts.mjs -o scripts/tts.mjs
+curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/tighten.py -o scripts/tighten.py
+curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/stills.mjs -o qa/stills.mjs
 ```
 
 Add your ElevenLabs keys to `videos/.env` and make sure `.env` is in `.gitignore`:
@@ -183,7 +184,7 @@ In the video code, `m(line, "submit")` gives the second the voice says "Submit".
 
 ## Tools
 
-The skill's tools live in `skills/jsxreel/scripts/`. Claude runs them for you; to run them by hand, use a clone of this repo and run them from the video project's folder.
+The skill's tools live in `skills/jsxreel/scripts/`. Claude runs them for you. To run them by hand, download them into the video project as shown in [Set up a video project](#set-up-a-video-project) and run them from its folder.
 
 **`tts.mjs`** records one narrator in a single ElevenLabs request, normalises loudness, cuts it per line and writes `src/videos/<video>/voice.json` (clip lengths and mark times). Copy it into the video project's `scripts/`.
 
@@ -197,7 +198,7 @@ Keys come from the project's `.env`, or from the file named in `ELEVENLABS_ENV`.
 
 ```bash
 mkdir -p .voice-orig && cp public/audio/<prefix>-line*.mp3 src/videos/<video>/voice.json .voice-orig/
-python3 -I ~/Code/jsxreel/skills/jsxreel/scripts/tighten.py "$PWD" <video> <prefix>
+python3 -I scripts/tighten.py "$PWD" <video> <prefix>
 ```
 
 | Flag | Default | Use |
