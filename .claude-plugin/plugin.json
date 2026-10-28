@@ -22,18 +22,18 @@
     "elevenlabs_api_key": {
       "type": "string",
       "title": "ElevenLabs API key",
-      "description": "Used to record the voiceover. Kept in your system keychain. Optional: leave it empty to use a .env file instead.",
+      "description": "Paste or type your ElevenLabs API key here. It records the voiceover and is kept in your system keychain.",
       "sensitive": true
     },
     "voice_id": {
       "type": "string",
       "title": "ElevenLabs voice ID",
-      "description": "The voice that narrates your videos. Optional: a project's own .env can set a different one, and Claude can find one for you."
+      "description": "Optional. Paste a voice ID for your narrator here, or leave it empty and Claude finds a voice for you."
     },
     "voices": {
       "type": "string",
       "title": "More voices (for dialogue)",
-      "description": "Optional. Voices you reuse for characters, as NAME=voice ID pairs separated by commas, for example HOST=abc123, GUEST=def456. A script uses them as VOICE_HOST and VOICE_GUEST. Claude can also cast fresh voices for each video."
+      "description": "Optional, for skits. Type each character's voice here as NAME=voice ID, separated by commas, like HOST=abc123, GUEST=def456."
     }
   }
 }
