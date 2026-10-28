@@ -35,20 +35,37 @@ Every video comes out as an mp4, rendered on your machine, with a report of its 
 
 ```mermaid
 flowchart LR
-  A[Your request<br/>or storyboard] --> B[Claude asks<br/>a few questions]
-  B --> C[Script with<br/>word marks]
-  C -->|you approve| D[ElevenLabs<br/>one take per voice]
-  D --> E[Tighten pacing]
-  E --> F[JSX scenes in Remotion<br/>timed to the words]
-  F --> G[Frame by frame QA]
-  G --> H[mp4]
+  subgraph plan ["1. Plan"]
+    direction TB
+    A(["You ask for a video"]) --> B["Claude asks a few questions"]
+    B --> C["Script: every beat tied to a spoken word"]
+    C --> D{{"You approve the script"}}
+  end
+  subgraph sound ["2. Sound"]
+    direction TB
+    E["Your voice, or free previews to pick from"] --> F["ElevenLabs records one take"]
+    F --> G["Each clip checked by transcription"]
+    G --> H["Pacing tightened, music and effects added"]
+  end
+  subgraph picture ["3. Picture"]
+    direction TB
+    I["Screens rebuilt in JSX, timed to the words"] --> J["Camera, depth and motion"]
+    J --> K["Every tap checked frame by frame"]
+    K --> L(["Your mp4 and a short report"])
+  end
+  plan --> sound --> picture
+  classDef you fill:#ffbe55,stroke:#b07a12,color:#1a1300,font-weight:bold
+  class A,D,L you
 ```
+
+The amber steps are yours: ask, approve the script, get the mp4. Everything else is Claude.
 
 - **Screens as code.** Scenes are React components animated in [Remotion](https://www.remotion.dev). Screens are rebuilt from your app's code, so they match it exactly. No screen recordings, no slideshows.
 - **One voice, one take.** Narration comes from [ElevenLabs](https://elevenlabs.io) in a single request per voice, so a voice never changes between lines. The take is then cut per line by its word timings.
 - **Timed to the word.** Each script line carries `marks`, phrases whose spoken time drives the animation. Record a new take and the whole video retimes itself.
 - **Tight pacing.** Natural speech feels slow on screen. `tighten.py` shortens long pauses and speeds the take up without spending new credits, and moves every mark with it.
-- **Checked before done.** Claude checks on screen instructions against the vendor's current docs, gets your approval on the script before spending credits, and renders the exact frame of every tap or click to confirm it hits its target.
+- **Looks finished.** A coloured backdrop, floating windows, a camera that pushes in on what changes and smooth entrances, so it reads like a product video, not a wireframe.
+- **Checked before done.** Claude checks on screen instructions against the vendor's current docs, gets your approval on the script before spending credits, transcribes every voice clip to confirm it says its line, and renders the exact frame of every tap or click to confirm it hits its target.
 
 ## Install
 
@@ -349,4 +366,6 @@ To render the final video, run `npx remotion render <CompositionId> out/video.mp
 
 ## License
 
-[MIT](LICENSE) © 2026 Himanshu Visroliya
+[MIT](LICENSE) © 2026 [Himanshu Visroliya](https://himanshuvisroliya.me/)
+
+Made by Himanshu Visroliya · [himanshuvisroliya.me](https://himanshuvisroliya.me/)
