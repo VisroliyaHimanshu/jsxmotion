@@ -4,6 +4,10 @@
 
 Ask Claude for a video the way you'd ask for a feature: an app walkthrough, an announcement from a storyboard image, or a 30 second promo. JSXMotion gives Claude the whole pipeline, from questions and script to voice, scenes, QA and the final mp4. One skill serves every project you have.
 
+[![Every tap lands on its spoken word](https://github.com/VisroliyaHimanshu/jsxmotion/releases/download/demo-video/jsxmotion-tap.gif)](https://github.com/VisroliyaHimanshu/jsxmotion/releases/tag/demo-video)
+
+**▶ [Download the 30 second how to video (mp4, with sound)](https://github.com/VisroliyaHimanshu/jsxmotion/releases/download/demo-video/jsxmotion-how-to.mp4)**, made with JSXMotion itself.
+
 - [What it does](#what-it-does)
 - [How it works](#how-it-works)
 - [Install](#install)
