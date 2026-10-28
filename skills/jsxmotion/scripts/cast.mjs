@@ -14,7 +14,7 @@ for (const envFile of [process.env.ELEVENLABS_ENV ?? new URL('../.env', import.m
   if (existsSync(envFile)) process.loadEnvFile(envFile);
 }
 const key = process.env.ELEVENLABS_API_KEY;
-if (!key) { console.error('ELEVENLABS_API_KEY missing (see the README, Keys)'); process.exit(1); }
+if (!key) { console.error('ELEVENLABS_API_KEY missing (see docs/GUIDE.md, Keys)'); process.exit(1); }
 
 const [video, topArg] = process.argv.slice(2);
 const top = Number(topArg ?? 5);
