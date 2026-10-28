@@ -3,7 +3,7 @@
 // First match wins: the environment, the project's .env (or the file named by ELEVENLABS_ENV), then
 // ~/.claude/jsxmotion/elevenlabs.env, the keys shared by every project (the plugin writes it from its settings, or write it by hand).
 // ELEVENLABS_API_KEY=proxy sends no key: a proxy adds it (Claude Code cloud sessions with a network secret).
-// Usage: node scripts/tts.mjs <video> [voice|sfx|music] [--force]
+// Usage: node scripts/tts.mjs <video> [voice|check|sfx|music] [--force]   ·   node scripts/tts.mjs keys
 //   voice (default): ONE take, so a voice never changes between lines, then cut per line by its timings.
 //     One narrator: "voice" in the script (else VOICE_ID) reads every line.
 //     Several voices: "voices": { "HOST": "VOICE_ID", "GUEST": "VOICE_GUEST" } and "who" on every line give one eleven_v3
@@ -14,7 +14,9 @@
 //     the spoken words with their times, for word by word captions.
 //   sfx: every "sfx" entry { "name": { "text", "duration" } } → public/sfx/<name>.mp3
 //   music: "music" { "prompt", "ms" } → public/music/<prefix>.mp3 (instrumental)
+//   check: transcribes every cut clip (ElevenLabs speech to text, a few cents) and compares it with the script line.
 //   sfx and music skip files already on disk (credits), unless --force.
+//   keys: which keys and voices are set, by name only. Check it before casting.
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
@@ -24,6 +26,12 @@ import { join } from 'node:path';
 for (const envFile of [process.env.ELEVENLABS_ENV ?? new URL('../.env', import.meta.url).pathname,
   join(homedir(), '.claude', 'jsxmotion', 'elevenlabs.env')]) {
   if (existsSync(envFile)) process.loadEnvFile(envFile);
+}
+// `node scripts/tts.mjs keys`: which keys and voices are set, by name only (never the values). Check this before casting.
+if (process.argv[2] === 'keys') {
+  const names = ['ELEVENLABS_API_KEY', 'VOICE_ID', ...Object.keys(process.env).filter(n => n.startsWith('VOICE_') && n !== 'VOICE_ID').sort()];
+  for (const n of names) console.log(`${n}: ${process.env[n] ? 'set' : 'missing'}`);
+  process.exit(0);
 }
 const missing = name => {
   console.error(`${name} missing: set it in the JSXMotion plugin settings (/plugin, Installed, JSXMotion, Configure options), ` +
@@ -161,7 +169,8 @@ async function sfx() {
   for (const [name, { text, duration }] of Object.entries(spec.sfx ?? {})) {
     const out = path(`public/sfx/${name}.mp3`);
     if (existsSync(out) && !force) { console.log(`sfx ${name}: exists, skipped (--force to redo)`); continue; }
-    const res = await post('/v1/sound-generation', { text, duration_seconds: duration, prompt_influence: 0.6 });
+    // ElevenLabs takes 0.5 to 30 s; a shorter sound is trimmed in the video instead.
+    const res = await post('/v1/sound-generation', { text, duration_seconds: Math.min(30, Math.max(0.5, duration)), prompt_influence: 0.6 });
     writeFileSync(out, Buffer.from(await res.arrayBuffer()));
     console.log(`sfx ${name}: done`);
   }
@@ -176,6 +185,24 @@ async function music() {
   console.log('music: done');
 }
 
-const run = { voice, sfx, music }[what];
-if (!run) { console.error('usage: node scripts/tts.mjs <video> [voice|sfx|music] [--force]'); process.exit(1); }
+// Every cut clip must hold its own line, nothing from its neighbours: the alignment can drift (eleven_v3 did).
+async function check() {
+  const words = s => s.toLowerCase().replace(/\[[^\]]*\]/g, ' ').match(/[a-z0-9']+/g)?.join(' ') ?? '';
+  let off = 0;
+  for (const [i, l] of spec.lines.entries()) {
+    const form = new FormData();
+    form.append('model_id', 'scribe_v1');
+    form.append('file', new Blob([readFileSync(path(`public/audio/${spec.prefix}-line${i}.mp3`))], { type: 'audio/mpeg' }), `line${i}.mp3`);
+    const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', { method: 'POST', body: form, headers: key === 'proxy' ? {} : { 'xi-api-key': key } });
+    if (!res.ok) { console.error('HTTP', res.status, (await res.text()).slice(0, 300)); process.exit(1); }
+    const heard = (await res.json()).text.trim();
+    const ok = words(heard).replace(/ /g, '') === words(l.say ?? l.text).replace(/ /g, '');
+    if (!ok) off++;
+    console.log(`line ${i}: ${ok ? 'ok   ' : 'CHECK'} heard "${heard}"`);
+  }
+  console.log(off ? `${off} line(s) to listen to: a word cut off, or one from the next line.` : 'every clip holds exactly its line');
+}
+
+const run = { voice, check, sfx, music }[what];
+if (!run) { console.error('usage: node scripts/tts.mjs <video> [voice|check|sfx|music] [--force]   or   node scripts/tts.mjs keys'); process.exit(1); }
 await run();

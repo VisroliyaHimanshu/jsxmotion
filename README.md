@@ -75,7 +75,7 @@ Claude uses it on its own when you ask for a video, or call it directly with `/j
 | Voice ID | No. Claude can find a voice for you |
 | More voices | No. For skits, like `HOST=abc123, GUEST=def456` |
 
-Change them any time: `/plugin` → **Installed** → **JSXMotion** → **Configure options**, then open a new session.
+Change them any time: `/plugin` → **Installed** → **JSXMotion** → **Configure options**.
 
 ### npx
 
@@ -268,7 +268,7 @@ A skit or promo with characters names a voice per role and says who speaks each 
 | `seed` | Optional. The same seed gives a similar take again |
 | `voice` | One narrator only: this video's voice, in place of `VOICE_ID` |
 | `cast` | Optional. Roles for `cast.mjs` to find voices for: `gender`, `ages` (`young`, `middle_aged`, `old`), 3 to 6 search `terms`, optional `accent` |
-| `sfx` | Optional. Name to sound: `text` describes it, `duration` in seconds |
+| `sfx` | Optional. Name to sound: `text` describes it, `duration` in seconds (0.5 to 30) |
 | `music` | Optional. An instrumental bed: `prompt` and length in `ms` |
 
 A dialogue take also writes `words` (each spoken word with its time) to `voice.json`, for word by word captions.
@@ -283,6 +283,8 @@ The skill's tools live in `skills/jsxmotion/scripts/`. Claude runs them for you.
 node scripts/tts.mjs <video>          # the voice: one take, normalised, cut per line
 node scripts/tts.mjs <video> sfx      # every sound in "sfx" → public/sfx/<name>.mp3
 node scripts/tts.mjs <video> music    # "music" → public/music/<prefix>.mp3
+node scripts/tts.mjs <video> check    # transcribes each clip and compares it with its line
+node scripts/tts.mjs keys             # which keys and voices are set (names only)
 ```
 
 The voice is one narrator, or with `voices` one dialogue take for every character. It writes `public/audio/<prefix>-line<i>.mp3`, keeps the uncut take as `<prefix>-take.mp3` so a cut can be redone for free, and writes `src/videos/<video>/voice.json` (clip lengths, mark times, and `words` for dialogue). Sounds and music already on disk are skipped; add `--force` to make them again.
@@ -324,8 +326,9 @@ To render the final video, run `npx remotion render <CompositionId> out/video.mp
 
 | Problem | Fix |
 |---|---|
-| Claude doesn't use the skill | Open a new session after installing. Check `/plugin` (plugin install) or `~/.claude/skills/jsxmotion` (npx or manual) |
-| `ELEVENLABS_API_KEY missing`, `VOICE_ID missing` or `voice for HOST (VOICE_HOST) missing` | Plugin install: enter them in `/plugin`, **Installed**, JSXMotion, **Configure options**, then start a new session. Otherwise add them to `~/.claude/jsxmotion/elevenlabs.env` or the video project's `.env` (see [Keys](#keys)). A project set up before the shared file existed needs the current `tts.mjs`. In the browser, set `ELEVENLABS_API_KEY=proxy` and `VOICE_ID` as environment variables |
+| Claude doesn't use the skill | Plugin install: run `/reload-plugins`. npx or manual: open a new session. Check `/plugin` (plugin install) or `~/.claude/skills/jsxmotion` (npx or manual) |
+| `ELEVENLABS_API_KEY missing`, `VOICE_ID missing` or `voice for HOST (VOICE_HOST) missing` | Plugin install: enter them in `/plugin`, **Installed**, JSXMotion, **Configure options**. Otherwise add them to `~/.claude/jsxmotion/elevenlabs.env` or the video project's `.env` (see [Keys](#keys)). A project set up before the shared file existed needs the current `tts.mjs`. In the browser, set `ELEVENLABS_API_KEY=proxy` and `VOICE_ID` as environment variables |
+| `node: command not found` from a JSXMotion hook | Claude Code can't see Node (an nvm only install, for example). Install Node 22 or newer for every app: `brew install node` |
 | `HTTP 401` (or another code) from ElevenLabs | The message printed after the code says which: a wrong key, or the plan is out of credits |
 | `line 3: mark "submit" phrase not found` | The phrase must match the spoken line exactly, including capitals. Check `say` if the line has one |
 | The voice changes between lines | Lines were recorded separately. Record the whole script in one take |
