@@ -1,12 +1,13 @@
 {
-  "name": "jsxreel",
+  "name": "jsxmotion",
+  "displayName": "JSXMotion",
   "description": "Narrated videos written like apps: JSX scenes in Remotion, voiced by ElevenLabs, every frame on the spoken word. App guides, storyboard announcements and promos.",
   "author": {
     "name": "Himanshu Visroliya",
     "url": "https://github.com/VisroliyaHimanshu"
   },
-  "homepage": "https://github.com/VisroliyaHimanshu/jsxreel",
-  "repository": "https://github.com/VisroliyaHimanshu/jsxreel",
+  "homepage": "https://github.com/VisroliyaHimanshu/jsxmotion",
+  "repository": "https://github.com/VisroliyaHimanshu/jsxmotion",
   "license": "MIT",
   "keywords": [
     "video",

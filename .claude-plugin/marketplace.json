@@ -1,13 +1,13 @@
 {
-  "name": "jsxreel",
-  "description": "jsxreel: narrated videos for your apps, made with Claude Code",
+  "name": "jsxmotion",
+  "description": "JSXMotion: narrated videos for your apps, made with Claude Code",
   "owner": {
     "name": "Himanshu Visroliya",
     "url": "https://github.com/VisroliyaHimanshu"
   },
   "plugins": [
     {
-      "name": "jsxreel",
+      "name": "jsxmotion",
       "source": "./",
       "description": "Narrated videos written like apps: app guides, storyboard announcements and promos, every frame on the spoken word."
     }

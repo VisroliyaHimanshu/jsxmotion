@@ -1,8 +1,8 @@
-# jsxreel
+# JSXMotion
 
 **Narrated videos written like apps.** A Claude Code skill that rebuilds your app's screens in JSX, animates them with Remotion, voices them with ElevenLabs, and lands every frame on the spoken word.
 
-Ask Claude for a video the way you'd ask for a feature: an app walkthrough, an announcement from a storyboard image, or a 30 second promo. jsxreel gives Claude the whole pipeline, from questions and script to voice, scenes, QA and the final mp4. One skill serves every project you have.
+Ask Claude for a video the way you'd ask for a feature: an app walkthrough, an announcement from a storyboard image, or a 30 second promo. JSXMotion gives Claude the whole pipeline, from questions and script to voice, scenes, QA and the final mp4. One skill serves every project you have.
 
 - [What it does](#what-it-does)
 - [How it works](#how-it-works)
@@ -55,38 +55,38 @@ Pick one. All three install the same skill.
 Inside Claude Code:
 
 ```
-/plugin install jsxreel --marketplace VisroliyaHimanshu/jsxreel
+/plugin install jsxmotion --marketplace VisroliyaHimanshu/jsxmotion
 ```
 
 On Claude Code older than 2.1.275, add the marketplace first:
 
 ```
-/plugin marketplace add VisroliyaHimanshu/jsxreel
-/plugin install jsxreel@jsxreel
+/plugin marketplace add VisroliyaHimanshu/jsxmotion
+/plugin install jsxmotion@jsxmotion
 ```
 
-Claude uses it on its own when you ask for a video, or call it directly with `/jsxreel:jsxreel`.
+Claude uses it on its own when you ask for a video, or call it directly with `/jsxmotion:jsxmotion`.
 
-**Your ElevenLabs key.** When you enable the plugin, Claude Code asks for your ElevenLabs API key, a narrator voice ID and, optionally, more voices you reuse for characters (`HOST=abc123, GUEST=def456`). The key is typed hidden and kept in your system keychain. Only the key is really needed: Claude can find voices for you from the ElevenLabs Voice Library. You can also skip all of them and use a `.env` file instead (see [Keys](#keys)). To add or change them later, open `/plugin`, go to **Installed**, select jsxreel and choose **Configure options**. The change applies from your next session.
+**Your ElevenLabs key.** When you enable the plugin, Claude Code asks for your ElevenLabs API key, a narrator voice ID and, optionally, more voices you reuse for characters (`HOST=abc123, GUEST=def456`). The key is typed hidden and kept in your system keychain. Only the key is really needed: Claude can find voices for you from the ElevenLabs Voice Library. You can also skip all of them and use a `.env` file instead (see [Keys](#keys)). To add or change them later, open `/plugin`, go to **Installed**, select JSXMotion and choose **Configure options**. The change applies from your next session.
 
 ### npx
 
 With the open [skills](https://skills.sh) installer, which also works for other coding agents:
 
 ```bash
-npx skills add VisroliyaHimanshu/jsxreel -g -a claude-code
+npx skills add VisroliyaHimanshu/jsxmotion -g -a claude-code
 ```
 
-`-g` installs it for all your projects; leave it out to install into the current project only. Call it with `/jsxreel`.
+`-g` installs it for all your projects; leave it out to install into the current project only. Call it with `/jsxmotion`.
 
 ### Manual
 
 ```bash
-git clone https://github.com/VisroliyaHimanshu/jsxreel.git ~/Code/jsxreel
-ln -s ~/Code/jsxreel/skills/jsxreel ~/.claude/skills/jsxreel
+git clone https://github.com/VisroliyaHimanshu/jsxmotion.git ~/Code/jsxmotion
+ln -s ~/Code/jsxmotion/skills/jsxmotion ~/.claude/skills/jsxmotion
 ```
 
-Update with `git -C ~/Code/jsxreel pull`. Call it with `/jsxreel`.
+Update with `git -C ~/Code/jsxmotion pull`. Call it with `/jsxmotion`.
 
 Open a new Claude Code session after installing so the skill is loaded.
 
@@ -96,7 +96,7 @@ Open a new Claude Code session after installing so the skill is loaded.
 |---|---|
 | Terminal, desktop app, VS Code and JetBrains | Install once with any method above. They all read the same `~/.claude` folder, so the skill is there in every one of them. |
 | Browser (Claude Code on the web) | Install the skill into the repository you open, and give the cloud environment your key as a network secret. See [Use it in the browser](#use-it-in-the-browser). |
-| A whole team on one repo | Run `claude plugin marketplace add VisroliyaHimanshu/jsxreel --scope project` in the repo and commit the `.claude/settings.json` it writes. Teammates are offered the plugin when they open the repo. |
+| A whole team on one repo | Run `claude plugin marketplace add VisroliyaHimanshu/jsxmotion --scope project` in the repo and commit the `.claude/settings.json` it writes. Teammates are offered the plugin when they open the repo. |
 
 Rendering needs a real machine with Node, ffmpeg and an ElevenLabs key (Remotion brings its own headless Chrome if no browser is installed). A local install in the terminal or desktop app is the smoothest.
 
@@ -104,7 +104,7 @@ Rendering needs a real machine with Node, ffmpeg and an ElevenLabs key (Remotion
 
 Claude Code on the web runs in a cloud machine that only sees the repository you open, not your computer. Set it up once (cloud sessions need a Pro, Max, Team or Enterprise plan):
 
-1. **Put the skill in the repo.** In the repository, run `npx skills add VisroliyaHimanshu/jsxreel -a claude-code` (without `-g`) and commit the `.claude/skills/jsxreel` folder it creates.
+1. **Put the skill in the repo.** In the repository, run `npx skills add VisroliyaHimanshu/jsxmotion -a claude-code` (without `-g`) and commit the `.claude/skills/jsxmotion` folder it creates.
 2. **Open your cloud environment** at [claude.ai/code](https://claude.ai/code) and edit it.
 3. **Add your ElevenLabs key as a network secret.** Under **Network secrets**, select **Add secret**: allowed website `api.elevenlabs.io`, custom header name `xi-api-key` with the prefix cleared, and your key as the value. The key stays outside the cloud machine; it is added to each request to ElevenLabs on the way out, so Claude never sees it. (On a Team plan without an admin role, ask an Owner to add it.)
 4. **Add two environment variables:**
@@ -123,7 +123,7 @@ The browser path is newer than the local one; if a step fails, please open an is
 
 ### Updates
 
-Plugin installs: open `/plugin`, go to **Marketplaces**, select jsxreel and choose **Enable auto-update**, or update by hand with `/plugin marketplace update jsxreel`. npx installs: `npx skills update`. Manual installs: `git pull`.
+Plugin installs: open `/plugin`, go to **Marketplaces**, select jsxmotion and choose **Enable auto-update**, or update by hand with `/plugin marketplace update jsxmotion`. npx installs: `npx skills update`. Manual installs: `git pull`.
 
 ## Requirements
 
@@ -146,7 +146,7 @@ The voice script needs your ElevenLabs `ELEVENLABS_API_KEY`, plus `VOICE_ID` for
 |---|---|
 | Environment variables | One off overrides, and the browser (`ELEVENLABS_API_KEY=proxy`, see [Use it in the browser](#use-it-in-the-browser)) |
 | The video project's `.env` (or the file named in `ELEVENLABS_ENV`) | A project that needs its own voice or account. Keep `.env` in `.gitignore` |
-| `~/.claude/jsxreel/elevenlabs.env` | One key and voice shared by every project |
+| `~/.claude/jsxmotion/elevenlabs.env` | One key and voice shared by every project |
 
 Plugin installs fill in the shared file for you: the key and voices entered in the plugin's settings are written there at the start of each session, readable by your user only. Other lines you put in that file are kept, so a voice you later remove from the settings stays there until you delete its line. With npx or a manual install, create it yourself:
 
@@ -165,16 +165,16 @@ cd your-app
 npx create-video@latest videos        # a blank Remotion project
 cd videos
 mkdir -p scripts qa
-curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/tts.mjs -o scripts/tts.mjs
-curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/cast.mjs -o scripts/cast.mjs
-curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/tighten.py -o scripts/tighten.py
-curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/stills.mjs -o qa/stills.mjs
+curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxmotion/main/skills/jsxmotion/scripts/tts.mjs -o scripts/tts.mjs
+curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxmotion/main/skills/jsxmotion/scripts/cast.mjs -o scripts/cast.mjs
+curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxmotion/main/skills/jsxmotion/scripts/tighten.py -o scripts/tighten.py
+curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxmotion/main/skills/jsxmotion/scripts/stills.mjs -o qa/stills.mjs
 printf '.env\nvoice-previews/\nout/\n' >> .gitignore
 ```
 
 If this project needs its own ElevenLabs key or voice, put them in `videos/.env`. Otherwise the shared keys apply (see [Keys](#keys)).
 
-Then tell jsxreel about the project in `~/.claude/jsxreel/projects.md`:
+Then tell JSXMotion about the project in `~/.claude/jsxmotion/projects.md`:
 
 ```markdown
 | Project | Folder | Read first | Voice | Conventions |
@@ -271,7 +271,7 @@ A dialogue take also writes `words` (each spoken word with its time) to `voice.j
 
 ## Tools
 
-The skill's tools live in `skills/jsxreel/scripts/`. Claude runs them for you. To run them by hand, download them into the video project as shown in [Optional: set up a video project by hand](#optional-set-up-a-video-project-by-hand) and run them from its folder.
+The skill's tools live in `skills/jsxmotion/scripts/`. Claude runs them for you. To run them by hand, download them into the video project as shown in [Optional: set up a video project by hand](#optional-set-up-a-video-project-by-hand) and run them from its folder.
 
 **`tts.mjs`** makes all of a video's ElevenLabs audio. Copy it into the video project's `scripts/`.
 
@@ -283,7 +283,7 @@ node scripts/tts.mjs <video> music    # "music" → public/music/<prefix>.mp3
 
 The voice is one narrator, or with `voices` one dialogue take for every character. It writes `public/audio/<prefix>-line<i>.mp3`, keeps the uncut take as `<prefix>-take.mp3` so a cut can be redone for free, and writes `src/videos/<video>/voice.json` (clip lengths, mark times, and `words` for dialogue). Sounds and music already on disk are skipped; add `--force` to make them again.
 
-Keys come from the environment, the project's `.env` (or the file named in `ELEVENLABS_ENV`), then `~/.claude/jsxreel/elevenlabs.env`; see [Keys](#keys). `ELEVENLABS_API_KEY=proxy` sends no key, for cloud sessions where a network secret adds it. Optional `ELEVEN_MODEL` for the narrator (default `eleven_multilingual_v2`); dialogue always uses `eleven_v3`. It spends credits, so run it once per approved script.
+Keys come from the environment, the project's `.env` (or the file named in `ELEVENLABS_ENV`), then `~/.claude/jsxmotion/elevenlabs.env`; see [Keys](#keys). `ELEVENLABS_API_KEY=proxy` sends no key, for cloud sessions where a network secret adds it. Optional `ELEVEN_MODEL` for the narrator (default `eleven_multilingual_v2`); dialogue always uses `eleven_v3`. It spends credits, so run it once per approved script.
 
 **`cast.mjs`** finds voices for the roles in `cast`: it searches the ElevenLabs Voice Library several ways per role, keeps adult voices, ranks them by use and saves each candidate's free preview to `voice-previews/<video>/`. It spends no credits. Claude gives you the shortlist with the preview files to listen to, and puts the voices you pick in `voices`.
 
@@ -320,8 +320,8 @@ To render the final video, run `npx remotion render <CompositionId> out/video.mp
 
 | Problem | Fix |
 |---|---|
-| Claude doesn't use the skill | Open a new session after installing. Check `/plugin` (plugin install) or `~/.claude/skills/jsxreel` (npx or manual) |
-| `ELEVENLABS_API_KEY missing`, `VOICE_ID missing` or `voice for HOST (VOICE_HOST) missing` | Plugin install: enter them in `/plugin`, **Installed**, jsxreel, **Configure options**, then start a new session. Otherwise add them to `~/.claude/jsxreel/elevenlabs.env` or the video project's `.env` (see [Keys](#keys)). A project set up before the shared file existed needs the current `tts.mjs`. In the browser, set `ELEVENLABS_API_KEY=proxy` and `VOICE_ID` as environment variables |
+| Claude doesn't use the skill | Open a new session after installing. Check `/plugin` (plugin install) or `~/.claude/skills/jsxmotion` (npx or manual) |
+| `ELEVENLABS_API_KEY missing`, `VOICE_ID missing` or `voice for HOST (VOICE_HOST) missing` | Plugin install: enter them in `/plugin`, **Installed**, JSXMotion, **Configure options**, then start a new session. Otherwise add them to `~/.claude/jsxmotion/elevenlabs.env` or the video project's `.env` (see [Keys](#keys)). A project set up before the shared file existed needs the current `tts.mjs`. In the browser, set `ELEVENLABS_API_KEY=proxy` and `VOICE_ID` as environment variables |
 | `HTTP 401` (or another code) from ElevenLabs | The message printed after the code says which: a wrong key, or the plan is out of credits |
 | `line 3: mark "submit" phrase not found` | The phrase must match the spoken line exactly, including capitals. Check `say` if the line has one |
 | The voice changes between lines | Lines were recorded separately. Record the whole script in one take |
@@ -331,9 +331,9 @@ To render the final video, run `npx remotion render <CompositionId> out/video.mp
 
 ## Privacy
 
-- Your project list lives in `~/.claude/jsxreel/projects.md`, outside the skill and outside git.
+- Your project list lives in `~/.claude/jsxmotion/projects.md`, outside the skill and outside git.
 - Never commit `.env`. Keys are loaded at runtime and never printed.
-- A key entered in the plugin's settings is kept in your system keychain and copied at each session start to `~/.claude/jsxreel/elevenlabs.env`, readable by your user only, because the voice script can't read the keychain. Uninstalling the plugin leaves that file; delete it to remove the key from disk.
+- A key entered in the plugin's settings is kept in your system keychain and copied at each session start to `~/.claude/jsxmotion/elevenlabs.env`, readable by your user only, because the voice script can't read the keychain. Uninstalling the plugin leaves that file; delete it to remove the key from disk.
 - Claude flags personal data in images you supply (names, phone numbers, emails) and asks before it goes into a video. Secrets such as a live QR code never appear on screen.
 
 ## License

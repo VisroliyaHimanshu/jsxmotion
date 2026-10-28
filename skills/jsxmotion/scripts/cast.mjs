@@ -10,7 +10,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 for (const envFile of [process.env.ELEVENLABS_ENV ?? new URL('../.env', import.meta.url).pathname,
-  join(homedir(), '.claude', 'jsxreel', 'elevenlabs.env')]) {
+  join(homedir(), '.claude', 'jsxmotion', 'elevenlabs.env')]) {
   if (existsSync(envFile)) process.loadEnvFile(envFile);
 }
 const key = process.env.ELEVENLABS_API_KEY;

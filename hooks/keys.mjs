@@ -1,5 +1,5 @@
 // SessionStart hook: hands the ElevenLabs key and voices entered in the plugin's settings to scripts/tts.mjs.
-// Commands Claude runs never see plugin options, so they go to ~/.claude/jsxreel/elevenlabs.env, readable by the user only,
+// Commands Claude runs never see plugin options, so they go to ~/.claude/jsxmotion/elevenlabs.env, readable by the user only,
 // which tts.mjs reads after the project's own .env. Other lines in that file are kept, so a voice removed from the settings
 // stays there (unused) until deleted by hand. Prints nothing: a SessionStart hook's stdout would land in Claude's context.
 import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'node:fs';
@@ -22,7 +22,7 @@ for (const pair of clean(process.env.CLAUDE_PLUGIN_OPTION_VOICES)?.split(',') ??
 // Nothing entered: leave a hand written file alone.
 if (!Object.values(set).some(Boolean)) process.exit(0);
 
-const dir = join(homedir(), '.claude', 'jsxreel');
+const dir = join(homedir(), '.claude', 'jsxmotion');
 const file = join(dir, 'elevenlabs.env');
 const vars = existsSync(file) ? parseEnv(readFileSync(file, 'utf8')) : {};
 for (const [name, value] of Object.entries(set)) if (value) vars[name] = value;

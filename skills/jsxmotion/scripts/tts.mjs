@@ -1,7 +1,7 @@
 // All ElevenLabs audio for one video, from scripts/<video>.json. Copy into <project>/scripts/.
 // Keys load at runtime and are never printed: ELEVENLABS_API_KEY, VOICE_ID (optional ELEVEN_MODEL, default eleven_multilingual_v2).
 // First match wins: the environment, the project's .env (or the file named by ELEVENLABS_ENV), then
-// ~/.claude/jsxreel/elevenlabs.env, the keys shared by every project (the plugin writes it from its settings, or write it by hand).
+// ~/.claude/jsxmotion/elevenlabs.env, the keys shared by every project (the plugin writes it from its settings, or write it by hand).
 // ELEVENLABS_API_KEY=proxy sends no key: a proxy adds it (Claude Code cloud sessions with a network secret).
 // Usage: node scripts/tts.mjs <video> [voice|sfx|music] [--force]
 //   voice (default): ONE take, so a voice never changes between lines, then cut per line by its timings.
@@ -22,12 +22,12 @@ import { join } from 'node:path';
 
 // loadEnvFile never overwrites a variable that is already set, so the first file to set one wins.
 for (const envFile of [process.env.ELEVENLABS_ENV ?? new URL('../.env', import.meta.url).pathname,
-  join(homedir(), '.claude', 'jsxreel', 'elevenlabs.env')]) {
+  join(homedir(), '.claude', 'jsxmotion', 'elevenlabs.env')]) {
   if (existsSync(envFile)) process.loadEnvFile(envFile);
 }
 const missing = name => {
-  console.error(`${name} missing: set it in the jsxreel plugin settings (/plugin, Installed, jsxreel, Configure options), ` +
-    "the project's .env or ~/.claude/jsxreel/elevenlabs.env (use ELEVENLABS_API_KEY=proxy when a proxy adds the key)");
+  console.error(`${name} missing: set it in the JSXMotion plugin settings (/plugin, Installed, JSXMotion, Configure options), ` +
+    "the project's .env or ~/.claude/jsxmotion/elevenlabs.env (use ELEVENLABS_API_KEY=proxy when a proxy adds the key)");
   process.exit(1);
 };
 const key = process.env.ELEVENLABS_API_KEY;

@@ -3,7 +3,7 @@ speed it up. Marks are remapped, so the video retimes on its own.
 
 Run from the video project root, after copying the untouched take into .voice-orig/:
   mkdir -p .voice-orig && cp public/audio/<prefix>-line*.mp3 src/videos/<video>/voice.json .voice-orig/
-  python3 -I <jsxreel skill dir>/scripts/tighten.py "$PWD" <video> <prefix> [--tempo 1.1] [--keep 8=0.45]
+  python3 -I <jsxmotion skill dir>/scripts/tighten.py "$PWD" <video> <prefix> [--tempo 1.1] [--keep 8=0.45]
 """
 import argparse, json, re, subprocess
 
