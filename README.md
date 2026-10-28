@@ -33,30 +33,7 @@ Every video comes out as an mp4, rendered on your machine, with a report of its 
 
 ## How it works
 
-```mermaid
-flowchart LR
-  subgraph plan ["1. Plan"]
-    direction TB
-    A(["You ask for a video"]) --> B["Claude asks a few questions"]
-    B --> C["Script: every beat tied to a spoken word"]
-    C --> D{{"You approve the script"}}
-  end
-  subgraph sound ["2. Sound"]
-    direction TB
-    E["Your voice, or free previews to pick from"] --> F["ElevenLabs records one take"]
-    F --> G["Each clip checked by transcription"]
-    G --> H["Pacing tightened, music and effects added"]
-  end
-  subgraph picture ["3. Picture"]
-    direction TB
-    I["Screens rebuilt in JSX, timed to the words"] --> J["Camera, depth and motion"]
-    J --> K["Every tap checked frame by frame"]
-    K --> L(["Your mp4 and a short report"])
-  end
-  plan --> sound --> picture
-  classDef you fill:#ffbe55,stroke:#b07a12,color:#1a1300,font-weight:bold
-  class A,D,L you
-```
+<p align="center"><img src="docs/how-it-works.jpg" width="900" alt="How JSXMotion makes a video, in three stages. 1, Plan: you ask for a video, Claude asks a few questions, writes a script with every beat tied to a word, and you approve it before credits are spent. 2, Sound: your voice or one picked from free previews, ElevenLabs records one take, every clip is checked by transcription, then pacing is tightened and music and effects are added. 3, Picture: screens are rebuilt in JSX timed to the words, with camera, depth and motion, every tap is checked on its frame, and you get your mp4 and a short report."></p>
 
 The amber steps are yours: ask, approve the script, get the mp4. Everything else is Claude.
 
