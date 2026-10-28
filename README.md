@@ -8,6 +8,7 @@ Ask Claude for a video the way you'd ask for a feature: an app walkthrough, an a
 - [How it works](#how-it-works)
 - [Install](#install)
 - [Requirements](#requirements)
+- [Keys](#keys)
 - [Optional: set up a video project by hand](#optional-set-up-a-video-project-by-hand)
 - [Make a video](#make-a-video)
 - [Script format](#script-format)
@@ -65,6 +66,8 @@ On Claude Code older than 2.1.275, add the marketplace first:
 ```
 
 Claude uses it on its own when you ask for a video, or call it directly with `/jsxreel:jsxreel`.
+
+**Your ElevenLabs key.** When you enable the plugin, Claude Code asks for your ElevenLabs API key, a narrator voice ID and, optionally, more voices you reuse for characters (`HOST=abc123, GUEST=def456`). The key is typed hidden and kept in your system keychain. Only the key is really needed: Claude can find voices for you from the ElevenLabs Voice Library. You can also skip all of them and use a `.env` file instead (see [Keys](#keys)). To add or change them later, open `/plugin`, go to **Installed**, select jsxreel and choose **Configure options**. The change applies from your next session.
 
 ### npx
 
@@ -135,6 +138,24 @@ Plugin installs: open `/plugin`, go to **Marketplaces**, select jsxreel and choo
 
 Remotion has its own licence: free for individuals, a paid licence for some companies. Check [remotion.pro/license](https://www.remotion.pro/license) for your case.
 
+## Keys
+
+The voice script needs your ElevenLabs `ELEVENLABS_API_KEY`, plus `VOICE_ID` for a narrator unless the script names its own voice. Voices you reuse for characters go in as `VOICE_<NAME>` (for example `VOICE_HOST`). Give them in any of these ways; for each value, the first one found wins:
+
+| Where | Use it for |
+|---|---|
+| Environment variables | One off overrides, and the browser (`ELEVENLABS_API_KEY=proxy`, see [Use it in the browser](#use-it-in-the-browser)) |
+| The video project's `.env` (or the file named in `ELEVENLABS_ENV`) | A project that needs its own voice or account. Keep `.env` in `.gitignore` |
+| `~/.claude/jsxreel/elevenlabs.env` | One key and voice shared by every project |
+
+Plugin installs fill in the shared file for you: the key and voices entered in the plugin's settings are written there at the start of each session, readable by your user only. Other lines you put in that file are kept, so a voice you later remove from the settings stays there until you delete its line. With npx or a manual install, create it yourself:
+
+```bash
+ELEVENLABS_API_KEY=your_key
+VOICE_ID=the_voice_you_picked
+VOICE_HOST=a_character_voice      # optional, one line per character voice you reuse
+```
+
 ## Optional: set up a video project by hand
 
 **You can skip this.** The skill is the process; each app keeps its own videos (scenes, scripts, audio) in a small Remotion project inside the app's repo. Claude creates that folder for you the first time you ask for a video. To create it yourself instead (no clone needed):
@@ -145,16 +166,13 @@ npx create-video@latest videos        # a blank Remotion project
 cd videos
 mkdir -p scripts qa
 curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/tts.mjs -o scripts/tts.mjs
+curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/cast.mjs -o scripts/cast.mjs
 curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/tighten.py -o scripts/tighten.py
 curl -fsSL https://raw.githubusercontent.com/VisroliyaHimanshu/jsxreel/main/skills/jsxreel/scripts/stills.mjs -o qa/stills.mjs
+printf '.env\nvoice-previews/\nout/\n' >> .gitignore
 ```
 
-Add your ElevenLabs keys to `videos/.env` and make sure `.env` is in `.gitignore`:
-
-```bash
-ELEVENLABS_API_KEY=your_key
-VOICE_ID=the_voice_you_picked
-```
+If this project needs its own ElevenLabs key or voice, put them in `videos/.env`. Otherwise the shared keys apply (see [Keys](#keys)).
 
 Then tell jsxreel about the project in `~/.claude/jsxreel/projects.md`:
 
@@ -217,17 +235,61 @@ A video's narration lives in `scripts/<video>.json`:
 
 In the video code, `m(line, "submit")` gives the second the voice says "Submit". The finger presses Submit right then.
 
+### Several voices, music and sound effects
+
+A skit or promo with characters names a voice per role and says who speaks each line. The whole script is recorded as one dialogue take (ElevenLabs eleven_v3), so the characters react to each other naturally:
+
+```json
+{
+  "prefix": "skit",
+  "voices": { "HOST": "VOICE_HOST", "GUEST": "a1b2c3d4e5f6g7h8i9j0" },
+  "seed": 7,
+  "lines": [
+    { "who": "HOST", "text": "[excited] Welcome back to the show!", "marks": { "hi": "Welcome" } },
+    { "who": "GUEST", "text": "[whispers] Is it over yet?" }
+  ],
+  "cast": {
+    "HOST": { "gender": "male", "ages": ["middle_aged"], "terms": ["game show", "cheesy", "host", "announcer"] }
+  },
+  "sfx": { "pop": { "text": "bright cartoon bubble pop", "duration": 0.5 } },
+  "music": { "prompt": "upbeat quirky comedy underscore, light percussion", "ms": 30000 }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `voices` | Role to voice. A value is the name of a variable holding a voice id (`VOICE_HOST` from the plugin's **More voices** setting, or `VOICE_ID`), or the id itself |
+| `who` | The role speaking the line |
+| `[tags]` | Optional eleven_v3 audio tags inside `text`, such as `[whispers]` or `[laughs]`. They shape the delivery and are left out of `words` |
+| `seed` | Optional. The same seed gives a similar take again |
+| `voice` | One narrator only: this video's voice, in place of `VOICE_ID` |
+| `cast` | Optional. Roles for `cast.mjs` to find voices for: `gender`, `ages` (`young`, `middle_aged`, `old`), 3 to 6 search `terms`, optional `accent` |
+| `sfx` | Optional. Name to sound: `text` describes it, `duration` in seconds |
+| `music` | Optional. An instrumental bed: `prompt` and length in `ms` |
+
+A dialogue take also writes `words` (each spoken word with its time) to `voice.json`, for word by word captions.
+
 ## Tools
 
 The skill's tools live in `skills/jsxreel/scripts/`. Claude runs them for you. To run them by hand, download them into the video project as shown in [Optional: set up a video project by hand](#optional-set-up-a-video-project-by-hand) and run them from its folder.
 
-**`tts.mjs`** records one narrator in a single ElevenLabs request, normalises loudness, cuts it per line and writes `src/videos/<video>/voice.json` (clip lengths and mark times). Copy it into the video project's `scripts/`.
+**`tts.mjs`** makes all of a video's ElevenLabs audio. Copy it into the video project's `scripts/`.
 
 ```bash
-node scripts/tts.mjs <video>
+node scripts/tts.mjs <video>          # the voice: one take, normalised, cut per line
+node scripts/tts.mjs <video> sfx      # every sound in "sfx" → public/sfx/<name>.mp3
+node scripts/tts.mjs <video> music    # "music" → public/music/<prefix>.mp3
 ```
 
-Keys come from the project's `.env`, the file named in `ELEVENLABS_ENV`, or the environment. `ELEVENLABS_API_KEY=proxy` sends no key, for cloud sessions where a network secret adds it. Optional `ELEVEN_MODEL` (default `eleven_multilingual_v2`). It spends credits, so run it once per approved script.
+The voice is one narrator, or with `voices` one dialogue take for every character. It writes `public/audio/<prefix>-line<i>.mp3`, keeps the uncut take as `<prefix>-take.mp3` so a cut can be redone for free, and writes `src/videos/<video>/voice.json` (clip lengths, mark times, and `words` for dialogue). Sounds and music already on disk are skipped; add `--force` to make them again.
+
+Keys come from the environment, the project's `.env` (or the file named in `ELEVENLABS_ENV`), then `~/.claude/jsxreel/elevenlabs.env`; see [Keys](#keys). `ELEVENLABS_API_KEY=proxy` sends no key, for cloud sessions where a network secret adds it. Optional `ELEVEN_MODEL` for the narrator (default `eleven_multilingual_v2`); dialogue always uses `eleven_v3`. It spends credits, so run it once per approved script.
+
+**`cast.mjs`** finds voices for the roles in `cast`: it searches the ElevenLabs Voice Library several ways per role, keeps adult voices, ranks them by use and saves each candidate's free preview to `voice-previews/<video>/`. It spends no credits. Claude gives you the shortlist with the preview files to listen to, and puts the voices you pick in `voices`.
+
+```bash
+node scripts/cast.mjs <video> [how many per role, default 5]
+```
 
 **`tighten.py`** shortens pauses inside each line, trims the tail and speeds the take up, without new credits. Marks are remapped, so the video retimes on its own. Keep the untouched take in `.voice-orig/` first:
 
@@ -259,7 +321,7 @@ To render the final video, run `npx remotion render <CompositionId> out/video.mp
 | Problem | Fix |
 |---|---|
 | Claude doesn't use the skill | Open a new session after installing. Check `/plugin` (plugin install) or `~/.claude/skills/jsxreel` (npx or manual) |
-| `ELEVENLABS_API_KEY or VOICE_ID missing` | Add both to the video project's `.env`, or point `ELEVENLABS_ENV` at your env file. In the browser, set `ELEVENLABS_API_KEY=proxy` and `VOICE_ID` as environment variables |
+| `ELEVENLABS_API_KEY missing`, `VOICE_ID missing` or `voice for HOST (VOICE_HOST) missing` | Plugin install: enter them in `/plugin`, **Installed**, jsxreel, **Configure options**, then start a new session. Otherwise add them to `~/.claude/jsxreel/elevenlabs.env` or the video project's `.env` (see [Keys](#keys)). A project set up before the shared file existed needs the current `tts.mjs`. In the browser, set `ELEVENLABS_API_KEY=proxy` and `VOICE_ID` as environment variables |
 | `HTTP 401` (or another code) from ElevenLabs | The message printed after the code says which: a wrong key, or the plan is out of credits |
 | `line 3: mark "submit" phrase not found` | The phrase must match the spoken line exactly, including capitals. Check `say` if the line has one |
 | The voice changes between lines | Lines were recorded separately. Record the whole script in one take |
@@ -271,6 +333,7 @@ To render the final video, run `npx remotion render <CompositionId> out/video.mp
 
 - Your project list lives in `~/.claude/jsxreel/projects.md`, outside the skill and outside git.
 - Never commit `.env`. Keys are loaded at runtime and never printed.
+- A key entered in the plugin's settings is kept in your system keychain and copied at each session start to `~/.claude/jsxreel/elevenlabs.env`, readable by your user only, because the voice script can't read the keychain. Uninstalling the plugin leaves that file; delete it to remove the key from disk.
 - Claude flags personal data in images you supply (names, phone numbers, emails) and asks before it goes into a video. Secrets such as a live QR code never appear on screen.
 
 ## License

@@ -17,7 +17,7 @@
 
 ## Promo, ad, reel or skit (social)
 - 30 to 40 s vertical. A hook on frame 0 (it is the cover). Teach the product to a stranger within about 5 s; captions explain, never just label; one reveal at a time; every beat long enough to read.
-- Characters in dialogue: one multi voice take (eleven_v3 text to dialogue, audio tags), a fresh cast per video from a full Voice Library sweep, previews given to the user as local mp3s.
-- Music and SFX (ElevenLabs) sit under the dialogue; render through the limiter pass to about -14 LUFS.
+- Characters in dialogue: one multi voice take (`voices` + `who`, eleven_v3 text to dialogue, audio tags), a fresh cast per video from a full Voice Library sweep (`cast.mjs`), previews given to the user as local mp3s. Captions can run word by word from `voice.json` `words`.
+- Music and SFX (`tts.mjs <video> sfx` / `music`) sit under the dialogue. Render through the limiter pass to about -14 LUFS, as the `render:` script: `remotion render <Comp> out/<v>-raw.mp4 && ffmpeg -y -loglevel error -i out/<v>-raw.mp4 -c:v copy -af alimiter=limit=0.89:level=false -c:a aac -b:a 256k out/<v>.mp4 && rm out/<v>-raw.mp4`.
 - Keep essential text out of the platform UI: top 260 px, bottom 350 px, right 120 px.
 - No fake reviews or star ratings, no brands or celebrities, adult voices only, the product's own look.

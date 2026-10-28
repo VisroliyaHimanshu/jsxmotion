@@ -1,71 +1,181 @@
-// One narrator for a video with ElevenLabs, in ONE request so the voice never changes. Copy into <project>/scripts/.
-// Keys load at runtime from the project's .env (or the file named by ELEVENLABS_ENV) when it exists, else from the environment,
-// and are never printed: ELEVENLABS_API_KEY, VOICE_ID (optional ELEVEN_MODEL, default eleven_multilingual_v2).
+// All ElevenLabs audio for one video, from scripts/<video>.json. Copy into <project>/scripts/.
+// Keys load at runtime and are never printed: ELEVENLABS_API_KEY, VOICE_ID (optional ELEVEN_MODEL, default eleven_multilingual_v2).
+// First match wins: the environment, the project's .env (or the file named by ELEVENLABS_ENV), then
+// ~/.claude/jsxreel/elevenlabs.env, the keys shared by every project (the plugin writes it from its settings, or write it by hand).
 // ELEVENLABS_API_KEY=proxy sends no key: a proxy adds it (Claude Code cloud sessions with a network secret).
-// Usage: node scripts/tts.mjs <video>
-//   reads  scripts/<video>.json            { "prefix": "ab", "lines": [{ "text": "...", "say": "spoken form", "marks": { "tap": "a phrase" } }] }
-//   writes public/audio/<prefix>-line<i>.mp3 and src/videos/<video>/voice.json
-//          (clip lengths, plus each mark's time in seconds from its clip start, so beats land on the word)
+// Usage: node scripts/tts.mjs <video> [voice|sfx|music] [--force]
+//   voice (default): ONE take, so a voice never changes between lines, then cut per line by its timings.
+//     One narrator: "voice" in the script (else VOICE_ID) reads every line.
+//     Several voices: "voices": { "HOST": "VOICE_ID", "GUEST": "VOICE_GUEST" } and "who" on every line give one eleven_v3
+//     text to dialogue take (audio tags like [whispers] allowed, optional "seed"). A voices value is the name of a
+//     variable holding a voice id, or the id itself.
+//     writes public/audio/<prefix>-line<i>.mp3, the uncut take public/audio/<prefix>-take.mp3, and src/videos/<video>/voice.json:
+//     clip lengths, each mark's time in seconds from its clip start (so beats land on the word), and for dialogue
+//     the spoken words with their times, for word by word captions.
+//   sfx: every "sfx" entry { "name": { "text", "duration" } } → public/sfx/<name>.mp3
+//   music: "music" { "prompt", "ms" } → public/music/<prefix>.mp3 (instrumental)
+//   sfx and music skip files already on disk (credits), unless --force.
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
-const envFile = process.env.ELEVENLABS_ENV ?? new URL('../.env', import.meta.url).pathname;
-if (existsSync(envFile)) process.loadEnvFile(envFile);
-const { ELEVENLABS_API_KEY: key, VOICE_ID: voice, ELEVEN_MODEL: model = 'eleven_multilingual_v2' } = process.env;
-if (!key || !voice) { console.error('ELEVENLABS_API_KEY or VOICE_ID missing (use ELEVENLABS_API_KEY=proxy when a proxy adds the key)'); process.exit(1); }
+// loadEnvFile never overwrites a variable that is already set, so the first file to set one wins.
+for (const envFile of [process.env.ELEVENLABS_ENV ?? new URL('../.env', import.meta.url).pathname,
+  join(homedir(), '.claude', 'jsxreel', 'elevenlabs.env')]) {
+  if (existsSync(envFile)) process.loadEnvFile(envFile);
+}
+const missing = name => {
+  console.error(`${name} missing: set it in the jsxreel plugin settings (/plugin, Installed, jsxreel, Configure options), ` +
+    "the project's .env or ~/.claude/jsxreel/elevenlabs.env (use ELEVENLABS_API_KEY=proxy when a proxy adds the key)");
+  process.exit(1);
+};
+const key = process.env.ELEVENLABS_API_KEY;
+if (!key) missing('ELEVENLABS_API_KEY');
 
-const video = process.argv[2];
+const [video, what = 'voice'] = process.argv.slice(2).filter(a => a !== '--force');
+const force = process.argv.includes('--force');
 const root = new URL('../', import.meta.url);
-const { prefix, lines } = JSON.parse(readFileSync(new URL(`scripts/${video}.json`, root)));
-const texts = lines.map(l => l.say ?? l.text);
-const full = texts.join('\n\n');
+const path = p => new URL(p, root).pathname;
+const spec = JSON.parse(readFileSync(path(`scripts/${video}.json`)));
+const ff = (...args) => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...args]);
 
-const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=mp3_44100_128`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json', ...(key !== 'proxy' && { 'xi-api-key': key }) },
-  body: JSON.stringify({
-    text: full,
-    model_id: model,
-    voice_settings: { stability: 0.55, similarity_boost: 0.8, style: 0.15, use_speaker_boost: true },
-  }),
-});
-if (!res.ok) { console.error('HTTP', res.status, (await res.text()).slice(0, 500)); process.exit(1); }
-const { audio_base64, alignment } = await res.json();
+async function post(url, body) {
+  const res = await fetch(`https://api.elevenlabs.io${url}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(key !== 'proxy' && { 'xi-api-key': key }) },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { console.error('HTTP', res.status, (await res.text()).slice(0, 500)); process.exit(1); }
+  return res;
+}
 
-const tmp = new URL('.tts-tmp/', root);
-mkdirSync(tmp, { recursive: true });
-const rawPath = new URL('full.mp3', tmp).pathname;
-const normPath = new URL('full.wav', tmp).pathname;
-writeFileSync(rawPath, Buffer.from(audio_base64, 'base64'));
-// One loudness pass over the whole read keeps every line at the same level.
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', rawPath, '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11', '-ar', '48000', normPath]);
+async function voice() {
+  const { prefix, lines } = spec;
+  const texts = lines.map(l => l.say ?? l.text);
+  let model, take, text, cs, ce, spans, cut;
 
-// Character offsets of each line inside `full`, mapped to the alignment's times.
-const { character_start_times_seconds: cs, character_end_times_seconds: ce } = alignment;
-let offset = 0;
-const spans = texts.map(text => {
-  const first = full.indexOf(text, offset), last = first + text.length - 1;
-  offset = last + 1;
-  return { first, start: cs[first], end: ce[last] };
-});
+  // A voice in the script is the name of a variable holding a voice id, or the id itself.
+  const voiceId = v => process.env[v] ?? (/^[A-Za-z0-9]{20}$/.test(v) ? v : null);
 
-mkdirSync(new URL('public/audio/', root), { recursive: true });
-const clips = spans.map((s, i) => {
-  const from = Math.max(0, s.start - 0.06);
-  const next = spans[i + 1]?.start ?? Infinity;
-  const to = Math.min(s.end + 0.25, next - 0.03);
-  const out = new URL(`public/audio/${prefix}-line${i}.mp3`, root).pathname;
-  const len = to - from;
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', from.toFixed(3), '-to', to.toFixed(3), '-i', normPath,
-    '-af', `afade=t=in:d=0.02,afade=t=out:st=${(len - 0.06).toFixed(3)}:d=0.06`, '-b:a', '192k', out]);
-  console.log(`line ${i}: ${len.toFixed(2)}s  "${texts[i].slice(0, 48)}"`);
-  return Number(len.toFixed(3));
-});
-const marks = lines.map((l, i) => Object.fromEntries(Object.entries(l.marks ?? {}).map(([name, phrase]) => {
-  const at = full.indexOf(phrase, spans[i].first);
-  if (at < 0 || at >= spans[i].first + texts[i].length) throw new Error(`line ${i}: mark "${name}" phrase not found: ${phrase}`);
-  return [name, Number((cs[at] - Math.max(0, spans[i].start - 0.06)).toFixed(3))];
-})));
-mkdirSync(new URL(`src/videos/${video}/`, root), { recursive: true });
-writeFileSync(new URL(`src/videos/${video}/voice.json`, root), JSON.stringify({ model, clips, marks }, null, 2) + '\n');
-rmSync(tmp, { recursive: true, force: true });
+  if (!spec.voices) {
+    // "voice" in the script picks this video's narrator; without it, VOICE_ID.
+    const id = voiceId(spec.voice ?? 'VOICE_ID');
+    if (!id) missing(spec.voice ? `narrator voice (${spec.voice})` : 'VOICE_ID');
+    model = process.env.ELEVEN_MODEL ?? 'eleven_multilingual_v2';
+    text = texts.join('\n\n');
+    const res = await post(`/v1/text-to-speech/${id}/with-timestamps?output_format=mp3_44100_128`, {
+      text,
+      model_id: model,
+      voice_settings: { stability: 0.55, similarity_boost: 0.8, style: 0.15, use_speaker_boost: true },
+    });
+    const { audio_base64, alignment } = await res.json();
+    take = audio_base64;
+    ({ character_start_times_seconds: cs, character_end_times_seconds: ce } = alignment);
+    // Character offsets of each line inside the take's text, mapped to the alignment's times.
+    let offset = 0;
+    spans = texts.map(t => {
+      const first = text.indexOf(t, offset), stop = first + t.length;
+      offset = stop;
+      return { first, stop, start: cs[first], end: ce[stop - 1] };
+    });
+    cut = (s, i) => {
+      const from = Math.max(0, s.start - 0.06), to = Math.min(s.end + 0.25, (spans[i + 1]?.start ?? Infinity) - 0.03);
+      return { from, to, fade: `afade=t=in:d=0.02,afade=t=out:st=${(to - from - 0.06).toFixed(3)}:d=0.06` };
+    };
+  } else {
+    const ids = Object.fromEntries(Object.entries(spec.voices).map(([who, v]) => {
+      const id = voiceId(v);
+      if (!id) missing(`voice for ${who} (${v})`);
+      return [who, id];
+    }));
+    lines.forEach((l, i) => { if (!ids[l.who]) throw new Error(`line ${i}: "who" must name one of voices (${Object.keys(ids).join(', ')})`); });
+    model = 'eleven_v3'; // the only model text to dialogue takes
+    const res = await post('/v1/text-to-dialogue/with-timestamps?output_format=mp3_44100_128', {
+      model_id: model,
+      inputs: lines.map((l, i) => ({ text: texts[i], voice_id: ids[l.who] })),
+      settings: { stability: 0.5 },
+      ...(spec.seed != null && { seed: spec.seed }),
+    });
+    const { audio_base64, voice_segments, alignment } = await res.json();
+    take = audio_base64;
+    text = alignment.characters.join('');
+    ({ character_start_times_seconds: cs, character_end_times_seconds: ce } = alignment);
+    spans = lines.map((_, i) => {
+      const segs = voice_segments.filter(s => s.dialogue_input_index === i);
+      if (!segs.length) throw new Error(`line ${i}: no voice segment`);
+      return {
+        start: Math.min(...segs.map(s => s.start_time_seconds)),
+        end: Math.max(...segs.map(s => s.end_time_seconds)),
+        first: Math.min(...segs.map(s => s.character_start_index)),
+        stop: Math.max(...segs.map(s => s.character_end_index)),
+      };
+    });
+    cut = (s, i) => {
+      const from = Math.max(0, s.start - 0.04, spans[i - 1]?.end ?? 0), to = Math.min(s.end + 0.15, spans[i + 1]?.start ?? Infinity);
+      return { from, to, fade: `afade=t=in:d=0.02,afade=t=out:st=${Math.max(0, to - from - 0.05).toFixed(3)}:d=0.05` };
+    };
+  }
+
+  const tmp = path('.tts-tmp/');
+  mkdirSync(tmp, { recursive: true });
+  mkdirSync(path('public/audio/'), { recursive: true });
+  // Keep the uncut take, so a bad cut can be redone without paying for a new take.
+  writeFileSync(path(`public/audio/${prefix}-take.mp3`), Buffer.from(take, 'base64'));
+  // One loudness pass over the whole take keeps every line and every voice at the same level.
+  ff('-i', path(`public/audio/${prefix}-take.mp3`), '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11', '-ar', '48000', tmp + 'full.wav');
+  if (spec.voices) {
+    // eleven_v3's timings can run behind the audio (once by about 0.75 s from line 1 on): every clip then opens on
+    // the previous line's tail. Transcribe the clips before using them.
+    const took = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', tmp + 'full.wav']));
+    if (took - ce.at(-1) > 0.4) console.warn(`WARNING: the audio runs ${(took - ce.at(-1)).toFixed(2)} s past its timings, so these cuts are late. Check each clip before using it.`);
+  }
+
+  const clips = [], marks = [], words = [];
+  spans.forEach((s, i) => {
+    const { from, to, fade } = cut(s, i);
+    const len = to - from;
+    ff('-ss', from.toFixed(3), '-to', to.toFixed(3), '-i', tmp + 'full.wav', '-af', fade, '-b:a', '192k',
+      path(`public/audio/${prefix}-line${i}.mp3`));
+    clips.push(Number(len.toFixed(3)));
+    marks.push(Object.fromEntries(Object.entries(lines[i].marks ?? {}).map(([name, phrase]) => {
+      const at = text.indexOf(phrase, s.first);
+      if (at < 0 || at >= s.stop) throw new Error(`line ${i}: mark "${name}" phrase not found: ${phrase}`);
+      return [name, Number((cs[at] - from).toFixed(3))];
+    })));
+    if (spec.voices) {
+      // Spoken words with their start times, for word by word captions. Audio tags ([whispers]) drop out.
+      const spoken = text.slice(s.first, s.stop).replace(/\[[^\]]*\]/g, m => ' '.repeat(m.length));
+      words.push([...spoken.matchAll(/\S+/g)].map(m => ({ w: m[0], t: Number((cs[s.first + m.index] - from).toFixed(3)) })));
+    }
+    console.log(`line ${i}${lines[i].who ? ` ${lines[i].who}` : ''}: ${len.toFixed(2)}s  "${texts[i].slice(0, 48)}"`);
+  });
+  mkdirSync(path(`src/videos/${video}/`), { recursive: true });
+  writeFileSync(path(`src/videos/${video}/voice.json`),
+    JSON.stringify({ model, clips, marks, ...(spec.voices && { words }) }, null, 2) + '\n');
+  rmSync(tmp, { recursive: true, force: true });
+}
+
+async function sfx() {
+  mkdirSync(path('public/sfx/'), { recursive: true });
+  for (const [name, { text, duration }] of Object.entries(spec.sfx ?? {})) {
+    const out = path(`public/sfx/${name}.mp3`);
+    if (existsSync(out) && !force) { console.log(`sfx ${name}: exists, skipped (--force to redo)`); continue; }
+    const res = await post('/v1/sound-generation', { text, duration_seconds: duration, prompt_influence: 0.6 });
+    writeFileSync(out, Buffer.from(await res.arrayBuffer()));
+    console.log(`sfx ${name}: done`);
+  }
+}
+
+async function music() {
+  const out = path(`public/music/${spec.prefix}.mp3`);
+  if (existsSync(out) && !force) return console.log('music: exists, skipped (--force to redo)');
+  mkdirSync(path('public/music/'), { recursive: true });
+  const res = await post('/v1/music', { prompt: spec.music.prompt, music_length_ms: spec.music.ms, force_instrumental: true });
+  writeFileSync(out, Buffer.from(await res.arrayBuffer()));
+  console.log('music: done');
+}
+
+const run = { voice, sfx, music }[what];
+if (!run) { console.error('usage: node scripts/tts.mjs <video> [voice|sfx|music] [--force]'); process.exit(1); }
+await run();

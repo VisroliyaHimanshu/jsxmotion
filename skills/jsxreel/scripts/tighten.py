@@ -17,7 +17,7 @@ keep = {int(k): float(v) for k, v in (x.split('=') for x in a.keep)}
 TAIL_KEEP = 0.12
 
 orig = json.load(open(f'{a.root}/.voice-orig/voice.json'))
-out = {**orig, 'clips': [], 'marks': []}
+out = {**orig, 'clips': [], 'marks': [], **({'words': list(orig['words'])} if 'words' in orig else {})}
 for i, _ in enumerate(orig['clips']):
     src = f'{a.root}/.voice-orig/{a.prefix}-line{i}.mp3'
     log = subprocess.run(['ffmpeg', '-hide_banner', '-i', src, '-af', 'silencedetect=n=-40dB:d=0.25', '-f', 'null', '-'], capture_output=True, text=True).stderr
@@ -42,6 +42,8 @@ for i, _ in enumerate(orig['clips']):
     removed = lambda t: sum(min(e, t) - s for s, e in rem if s < t)
     out['clips'].append(round((dur - removed(dur)) / a.tempo, 3))
     out['marks'].append({k: round((v - removed(v)) / a.tempo, 3) for k, v in orig['marks'][i].items()})
+    if 'words' in orig:  # dialogue takes: word by word caption times move with the audio too
+        out['words'][i] = [{**w, 't': round((w['t'] - removed(w['t'])) / a.tempo, 3)} for w in orig['words'][i]]
     print(f'line {i}: {dur:.2f}s -> {out["clips"][-1]:.2f}s')
 path = f'{a.root}/src/videos/{a.video}/voice.json'
 json.dump(out, open(path, 'w'), indent=2)
