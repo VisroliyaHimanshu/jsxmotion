@@ -67,7 +67,15 @@ On Claude Code older than 2.1.275, add the marketplace first:
 
 Claude uses it on its own when you ask for a video, or call it directly with `/jsxmotion:jsxmotion`.
 
-**Your ElevenLabs key.** When you enable the plugin, Claude Code asks for your ElevenLabs API key, a narrator voice ID and, optionally, more voices you reuse for characters (`HOST=abc123, GUEST=def456`). The key is typed hidden and kept in your system keychain. Only the key is really needed: Claude can find voices for you from the ElevenLabs Voice Library. You can also skip all of them and use a `.env` file instead (see [Keys](#keys)). To add or change them later, open `/plugin`, go to **Installed**, select JSXMotion and choose **Configure options**. The change applies from your next session.
+**Then add your ElevenLabs key.** Claude Code asks for it right after install:
+
+| Setting | Needed? |
+|---|---|
+| ElevenLabs API key | Yes. Hidden, kept in your keychain |
+| Voice ID | No. Claude can find a voice for you |
+| More voices | No. For skits, like `HOST=abc123, GUEST=def456` |
+
+Change them any time: `/plugin` → **Installed** → **JSXMotion** → **Configure options**, then open a new session.
 
 ### npx
 
@@ -140,21 +148,17 @@ Remotion has its own licence: free for individuals, a paid licence for some comp
 
 ## Keys
 
-The voice script needs your ElevenLabs `ELEVENLABS_API_KEY`, plus `VOICE_ID` for a narrator unless the script names its own voice. Voices you reuse for characters go in as `VOICE_<NAME>` (for example `VOICE_HOST`). Give them in any of these ways; for each value, the first one found wins:
+**Plugin install:** nothing to do here. The key you enter in the plugin settings is used everywhere.
 
-| Where | Use it for |
-|---|---|
-| Environment variables | One off overrides, and the browser (`ELEVENLABS_API_KEY=proxy`, see [Use it in the browser](#use-it-in-the-browser)) |
-| The video project's `.env` (or the file named in `ELEVENLABS_ENV`) | A project that needs its own voice or account. Keep `.env` in `.gitignore` |
-| `~/.claude/jsxmotion/elevenlabs.env` | One key and voice shared by every project |
-
-Plugin installs fill in the shared file for you: the key and voices entered in the plugin's settings are written there at the start of each session, readable by your user only. Other lines you put in that file are kept, so a voice you later remove from the settings stays there until you delete its line. With npx or a manual install, create it yourself:
+**npx or manual install:** create `~/.claude/jsxmotion/elevenlabs.env`:
 
 ```bash
 ELEVENLABS_API_KEY=your_key
-VOICE_ID=the_voice_you_picked
-VOICE_HOST=a_character_voice      # optional, one line per character voice you reuse
+VOICE_ID=a_voice_id          # optional
+VOICE_HOST=another_voice_id  # optional, a character voice for skits
 ```
+
+Need a different key or voice for one project? Put the same lines in that project's `.env` (keep `.env` in `.gitignore`). It wins over the shared file, and environment variables win over both.
 
 ## Optional: set up a video project by hand
 
